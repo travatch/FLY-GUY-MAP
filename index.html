@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Fancy Pilot Map: VFR, LIFR, HIFR + Terminal</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <style>
+    body, html {
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+    #overlayControl {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      font-family: Arial, sans-serif;
+      display: flex;
+      gap: 10px;
+    }
+    .toggleBtn {
+      background-color: #eee;
+      border: 2px solid #0078A8;
+      color: #0078A8;
+      padding: 6px 20px;
+      font-weight: bold;
+      font-size: 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+      box-shadow: 0 0 6px rgba(0,120,168,0.3);
+      min-width: 60px;
+      text-align: center;
+    }
+    .toggleBtn.active {
+      background-color: #0078A8;
+      color: white;
+      box-shadow: 0 0 10px rgba(0,120,168,0.8);
+    }
+  </style>
+</head>
+<body>
+  <div id="overlayControl">
+    <button id="vfrToggleBtn" class="toggleBtn active" aria-pressed="true">VFR</button>
+    <button id="lifrToggleBtn" class="toggleBtn" aria-pressed="false">LIFR</button>
+    <button id="hifrToggleBtn" class="toggleBtn" aria-pressed="false">HIFR</button>
+  </div>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/esri-leaflet"></script>
+  <script>
+    const map = L.map('map', {
+      minZoom: 4,
+      maxZoom: 16,
+    }).setView([39.8283, -98.5795], 7);
+
+    const baseLayer = L.esri.basemapLayer('Topographic').addTo(map);
+
+    // Overlays
+    const vfrOverlay = L.esri.tiledMapLayer({
+      url: 'https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/VFR_Sectional/MapServer',
+      minZoom: 8,
+    });
+
+    const lifrOverlay = L.esri.tiledMapLayer({
+      url: 'https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/IFR_AreaLow/MapServer',
+      minZoom: 8,
+    });
+
+    const hifrOverlay = L.esri.tiledMapLayer({
+      url: 'https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/IFR_High/MapServer',
+      minZoom: 8,
+    });
+
+    const terminalOverlay = L.esri.tiledMapLayer({
+      url: 'https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/VFR_Terminal/MapServer',
+      minZoom: 12,
+    });
+
+    // States
+    let vfrEnabled = true;
+    let lifrEnabled = false;
+    let hifrEnabled = false;
+
+    // Button Elements
+    const vfrBtn = document.getElementById('vfrToggleBtn');
+    const lifrBtn = document.getElementById('lifrToggleBtn');
+    const hifrBtn = document.getElementById('hifrToggleBtn');
+
+    // Layer management
+    function updateOverlays() {
+      const zoom = map.getZoom();
+
+      // VFR
+      if (zoom >= 8 && vfrEnabled) {
+        if (!map.hasLayer(vfrOverlay)) map.addLayer(vfrOverlay);
+      } else {
+        if (map.hasLayer(vfrOverlay)) map.removeLayer(vfrOverlay);
+      }
+
+      // Terminal charts (tied to VFR, zoom ≥ 12)
+      if (zoom >= 12 && vfrEnabled) {
+        if (!map.hasLayer(terminalOverlay)) map.addLayer(terminalOverlay);
+      } else {
+        if (map.hasLayer(terminalOverlay)) map.removeLayer(terminalOverlay);
+      }
+
+      // LIFR
+      if (zoom >= 8 && lifrEnabled) {
+        if (!map.hasLayer(lifrOverlay)) map.addLayer(lifrOverlay);
+      } else {
+        if (map.hasLayer(lifrOverlay)) map.removeLayer(lifrOverlay);
+      }
+
+      // HIFR
+      if (zoom >= 8 && hifrEnabled) {
+        if (!map.hasLayer(hifrOverlay)) map.addLayer(hifrOverlay);
+      } else {
+        if (map.hasLayer(hifrOverlay)) map.removeLayer(hifrOverlay);
+      }
+    }
+
+    // Initial check
+    updateOverlays();
+    map.on('zoomend', updateOverlays);
+
+    // Button event listeners
+    vfrBtn.addEventListener('click', () => {
+      vfrEnabled = !vfrEnabled;
+      vfrBtn.classList.toggle('active', vfrEnabled);
+      vfrBtn.setAttribute('aria-pressed', vfrEnabled);
+      updateOverlays();
+    });
+
+    lifrBtn.addEventListener('click', () => {
+      lifrEnabled = !lifrEnabled;
+      lifrBtn.classList.toggle('active', lifrEnabled);
+      lifrBtn.setAttribute('aria-pressed', lifrEnabled);
+      updateOverlays();
+    });
+
+    hifrBtn.addEventListener('click', () => {
+      hifrEnabled = !hifrEnabled;
+      hifrBtn.classList.toggle('active', hifrEnabled);
+      hifrBtn.setAttribute('aria-pressed', hifrEnabled);
+      updateOverlays();
+    });
+  </script>
+</body>
+</html>
